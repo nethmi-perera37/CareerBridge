@@ -6,9 +6,10 @@ const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
-
+const internshipRoutes = require("./routes/internshipRoutes");
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
+app.use("/api/internships", internshipRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({
