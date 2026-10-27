@@ -477,3 +477,52 @@ footer p {
     width: 100%;
   }
 }
+
+/* Login and registration forms */
+.auth-section {
+  padding: 35px 20px;
+  background: #eff6ff;
+}
+
+.auth-form {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 30px;
+  background: white;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px #00000014;
+}
+
+.auth-form h2 {
+  margin: 0 0 20px;
+  color: #1d4ed8;
+  font-size: 24px;
+}
+
+.auth-form label {
+  display: block;
+  margin: 14px 0 6px;
+  font-weight: 600;
+}
+
+.auth-form input,
+.auth-form select {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.auth-form button {
+  margin-top: 18px;
+  margin-right: 10px;
+}
+
+.user-info {
+  color: #1e3a8a;
+  font-weight: 600;
+  align-self: center;
+}

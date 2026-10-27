@@ -1,7 +1,15 @@
+
 const mongoose = require("mongoose");
 
 const internshipSchema = new mongoose.Schema(
   {
+    // Company account that posted this internship
+    postedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
     title: {
       type: String,
       required: true,

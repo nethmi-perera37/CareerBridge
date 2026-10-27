@@ -1,8 +1,9 @@
-
 import { useEffect, useState } from "react";
 import "./App.css";
 
 const API_URL = "http://localhost:5000/api/internships";
+const AUTH_URL = "http://localhost:5000/api/auth";
+const APPLICATION_URL = "http://localhost:5000/api/applications";
 
 const emptyForm = {
   title: "",
@@ -12,6 +13,13 @@ const emptyForm = {
   description: "",
   requirements: "",
   deadline: "",
+};
+
+const emptyAuthForm = {
+  name: "",
+  email: "",
+  password: "",
+  role: "student",
 };
 
 function App() {
@@ -27,7 +35,7 @@ function App() {
   // Internship details
   const [selectedInternship, setSelectedInternship] = useState(null);
 
-  // Add and Edit form
+  // Internship CRUD
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ ...emptyForm });
@@ -35,7 +43,50 @@ function App() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
-  // READ: Load internships from MongoDB
+  // Authentication
+  const [authMode, setAuthMode] = useState(null);
+  const [authForm, setAuthForm] = useState({ ...emptyAuthForm });
+  const [authError, setAuthError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [token, setToken] = useState("");
+
+  // Student application state
+  const [applyingInternship, setApplyingInternship] = useState(null);
+  const [coverLetter, setCoverLetter] = useState("");
+  const [applicationError, setApplicationError] = useState("");
+  const [submittingApplication, setSubmittingApplication] = useState(false);
+  const [myApplications, setMyApplications] = useState([]);
+  const [loadingApplications, setLoadingApplications] = useState(false);
+
+  // Company application review state
+  const [reviewingInternship, setReviewingInternship] = useState(null);
+  const [companyApplications, setCompanyApplications] = useState([]);
+  const [loadingApplicants, setLoadingApplicants] = useState(false);
+  const [applicantError, setApplicantError] = useState("");
+  const [updatingApplicationId, setUpdatingApplicationId] = useState(null);
+
+  // Permissions
+  const isCompany = currentUser?.role === "company";
+  const isStudent = currentUser?.role === "student";
+
+  function canManageInternship(internship) {
+    return (
+      isCompany &&
+      Boolean(currentUser?.id) &&
+      String(internship.postedBy || "") === String(currentUser.id)
+    );
+  }
+
+  function hasApplied(internshipId) {
+    return myApplications.some(
+      (application) =>
+        (application.internship?._id || application.internship) ===
+        internshipId
+    );
+  }
+
+  // READ - Fetch internships
   useEffect(() => {
     async function fetchInternships() {
       try {
@@ -57,7 +108,7 @@ function App() {
     fetchInternships();
   }, []);
 
-  // Search by internship title, company or location
+  // Search internships
   const filteredInternships = internships.filter((internship) => {
     const keyword = searchTerm.toLowerCase();
 
@@ -77,6 +128,137 @@ function App() {
     });
   }
 
+  // Open login or registration form
+  function openAuthForm(mode) {
+    setAuthMode(mode);
+    setAuthForm({ ...emptyAuthForm });
+    setAuthError("");
+  }
+
+  function handleAuthInputChange(event) {
+    const { name, value } = event.target;
+
+    setAuthForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  }
+
+  // Fetch the logged-in student's applications
+  async function fetchMyApplications(authToken) {
+    setLoadingApplications(true);
+    setApplicationError("");
+
+    try {
+      const response = await fetch(`${APPLICATION_URL}/my`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Failed to load applications."
+        );
+      }
+
+      setMyApplications(result);
+    } catch (err) {
+      setApplicationError(err.message);
+    } finally {
+      setLoadingApplications(false);
+    }
+  }
+
+  // REGISTER or LOGIN
+  async function handleAuthSubmit(event) {
+    event.preventDefault();
+
+    if (authLoading) return;
+
+    setAuthLoading(true);
+    setAuthError("");
+
+    try {
+      const endpoint =
+        authMode === "register" ? "register" : "login";
+
+      const payload =
+        authMode === "register"
+          ? authForm
+          : {
+              email: authForm.email,
+              password: authForm.password,
+            };
+
+      const response = await fetch(`${AUTH_URL}/${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Authentication failed."
+        );
+      }
+
+      setCurrentUser(result.user);
+      setToken(result.token);
+      setAuthMode(null);
+      setAuthForm({ ...emptyAuthForm });
+      setApplicationError("");
+      setApplyingInternship(null);
+      setReviewingInternship(null);
+      setCompanyApplications([]);
+      setApplicantError("");
+
+      if (result.user.role === "student") {
+        await fetchMyApplications(result.token);
+      } else {
+        setMyApplications([]);
+      }
+
+      alert(
+        authMode === "register"
+          ? "Registration successful! You are now logged in."
+          : "Login successful!"
+      );
+    } catch (err) {
+      setAuthError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  function handleLogout() {
+    setCurrentUser(null);
+    setToken("");
+    setAuthMode(null);
+
+    handleCancelForm();
+
+    setApplyingInternship(null);
+    setCoverLetter("");
+    setApplicationError("");
+    setMyApplications([]);
+    setLoadingApplications(false);
+    setReviewingInternship(null);
+    setCompanyApplications([]);
+    setApplicantError("");
+    setLoadingApplicants(false);
+    setUpdatingApplicationId(null);
+
+    alert("You have logged out successfully.");
+  }
+
+  // Internship form input
   function handleInputChange(event) {
     const { name, value } = event.target;
 
@@ -93,12 +275,20 @@ function App() {
     setFormError("");
   }
 
+  // Open or close internship form
   function handleNewInternship() {
+    if (!isCompany) return;
+
     if (showForm) {
       handleCancelForm();
     } else {
       setEditingId(null);
-      setFormData({ ...emptyForm });
+
+      setFormData({
+        ...emptyForm,
+        company: currentUser.name,
+      });
+
       setFormError("");
       setShowForm(true);
     }
@@ -108,7 +298,7 @@ function App() {
   async function handleSaveInternship(event) {
     event.preventDefault();
 
-    if (saving) return;
+    if (saving || !isCompany || !token) return;
 
     setSaving(true);
     setFormError("");
@@ -124,18 +314,23 @@ function App() {
         method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          title: formData.title,
+          location: formData.location,
+          type: formData.type,
+          description: formData.description,
+          requirements: formData.requirements,
+          deadline: formData.deadline,
+        }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
-          (isEditing
-            ? "Failed to update internship."
-            : "Failed to add internship.")
+          result.message || "Failed to save internship."
         );
       }
 
@@ -146,7 +341,6 @@ function App() {
           )
         );
 
-        // Update details if this internship is currently selected
         setSelectedInternship((previous) =>
           previous?._id === editingId ? result : previous
         );
@@ -170,8 +364,10 @@ function App() {
     }
   }
 
-  // Open the form with existing internship information
+  // Open Edit form
   function handleEditInternship(internship) {
+    if (!canManageInternship(internship)) return;
+
     setEditingId(internship._id);
 
     setFormData({
@@ -194,12 +390,20 @@ function App() {
     });
   }
 
-  // DELETE internship from MongoDB
+  // DELETE internship
   async function handleDeleteInternship(id) {
-    if (deletingId) return;
+    if (deletingId || !isCompany || !token) return;
+
+    const internship = internships.find(
+      (item) => item._id === id
+    );
+
+    if (!internship || !canManageInternship(internship)) {
+      return;
+    }
 
     const confirmed = window.confirm(
-      "Are you sure you want to delete this internship? This action cannot be undone."
+      "Are you sure you want to delete this internship?"
     );
 
     if (!confirmed) return;
@@ -209,14 +413,21 @@ function App() {
     try {
       const response = await fetch(`${API_URL}/${id}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete internship.");
+        const result = await response.json();
+
+        throw new Error(
+          result.message || "Failed to delete internship."
+        );
       }
 
       setInternships((previous) =>
-        previous.filter((internship) => internship._id !== id)
+        previous.filter((item) => item._id !== id)
       );
 
       setSelectedInternship((previous) =>
@@ -235,6 +446,145 @@ function App() {
     }
   }
 
+  // Open student application form
+  function handleApplyClick(internship) {
+    if (!isStudent || hasApplied(internship._id)) return;
+
+    setApplyingInternship(internship);
+    setCoverLetter("");
+    setApplicationError("");
+
+    document.getElementById("application-form")?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }
+
+  // Submit an application
+  async function handleSubmitApplication(event) {
+    event.preventDefault();
+
+    if (
+      submittingApplication ||
+      !isStudent ||
+      !token ||
+      !applyingInternship
+    ) {
+      return;
+    }
+
+    setSubmittingApplication(true);
+    setApplicationError("");
+
+    try {
+      const response = await fetch(APPLICATION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          internshipId: applyingInternship._id,
+          coverLetter: coverLetter.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Failed to submit application."
+        );
+      }
+
+      setMyApplications((previous) => [
+        result.application,
+        ...previous,
+      ]);
+
+      setApplyingInternship(null);
+      setCoverLetter("");
+
+      await fetchMyApplications(token);
+
+      alert("Application submitted successfully!");
+    } catch (err) {
+      setApplicationError(err.message);
+    } finally {
+      setSubmittingApplication(false);
+    }
+  }
+
+  // Company views applications submitted for one of its internships
+  async function handleViewApplicants(internship) {
+    if (!canManageInternship(internship) || !token) return;
+
+    setReviewingInternship(internship);
+    setCompanyApplications([]);
+    setApplicantError("");
+    setLoadingApplicants(true);
+
+    try {
+      const response = await fetch(
+        `${APPLICATION_URL}/internship/${internship._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to load applicants.");
+      }
+
+      setCompanyApplications(result);
+    } catch (err) {
+      setApplicantError(err.message);
+    } finally {
+      setLoadingApplicants(false);
+    }
+  }
+
+  // Company accepts or rejects an application
+  async function handleUpdateApplicationStatus(applicationId, status) {
+    if (!isCompany || !token || updatingApplicationId) return;
+
+    setUpdatingApplicationId(applicationId);
+    setApplicantError("");
+
+    try {
+      const response = await fetch(
+        `${APPLICATION_URL}/${applicationId}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status }),
+        }
+      );
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to update application.");
+      }
+
+      setCompanyApplications((previous) =>
+        previous.map((application) =>
+          application._id === applicationId
+            ? { ...application, status: result.application.status }
+            : application
+        )
+      );
+
+      alert(`Application ${status.toLowerCase()} successfully!`);
+    } catch (err) {
+      setApplicantError(err.message);
+    } finally {
+      setUpdatingApplicationId(null);
+    }
+  }
+
   return (
     <div className="app">
       {/* NAVIGATION */}
@@ -244,16 +594,146 @@ function App() {
         <div className="nav-links">
           <a href="#home">Home</a>
           <a href="#internships">Internships</a>
+          {isStudent && (
+            <a href="#my-applications">My Applications</a>
+          )}
           <a href="#about">About</a>
         </div>
 
         <div className="nav-buttons">
-          <button type="button">Login</button>
-          <button type="button" className="primary-btn">
-            Register
-          </button>
+          {currentUser ? (
+            <>
+              <span className="user-info">
+                {currentUser.name} ({currentUser.role})
+              </span>
+
+              <button type="button" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => openAuthForm("login")}
+              >
+                Login
+              </button>
+
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={() => openAuthForm("register")}
+              >
+                Register
+              </button>
+            </>
+          )}
         </div>
       </nav>
+
+      {/* LOGIN / REGISTER FORM */}
+      {authMode && (
+        <section className="auth-section">
+          <form
+            className="auth-form"
+            onSubmit={handleAuthSubmit}
+          >
+            <h2>
+              {authMode === "register"
+                ? "Create Your CareerBridge Account"
+                : "Login to CareerBridge"}
+            </h2>
+
+            {authMode === "register" && (
+              <>
+                <label htmlFor="auth-name">
+                  Full Name / Company Name
+                </label>
+
+                <input
+                  id="auth-name"
+                  type="text"
+                  name="name"
+                  value={authForm.name}
+                  onChange={handleAuthInputChange}
+                  required
+                />
+              </>
+            )}
+
+            <label htmlFor="auth-email">Email</label>
+
+            <input
+              id="auth-email"
+              type="email"
+              name="email"
+              value={authForm.email}
+              onChange={handleAuthInputChange}
+              required
+            />
+
+            <label htmlFor="auth-password">
+              Password
+            </label>
+
+            <input
+              id="auth-password"
+              type="password"
+              name="password"
+              value={authForm.password}
+              onChange={handleAuthInputChange}
+              minLength={
+                authMode === "register" ? 8 : undefined
+              }
+              required
+            />
+
+            {authMode === "register" && (
+              <>
+                <label htmlFor="auth-role">
+                  Register As
+                </label>
+
+                <select
+                  id="auth-role"
+                  name="role"
+                  value={authForm.role}
+                  onChange={handleAuthInputChange}
+                >
+                  <option value="student">Student</option>
+                  <option value="company">Company</option>
+                </select>
+              </>
+            )}
+
+            {authError && (
+              <p className="form-error" role="alert">
+                {authError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="primary-btn"
+              disabled={authLoading}
+            >
+              {authLoading
+                ? "Please wait..."
+                : authMode === "register"
+                ? "Register"
+                : "Login"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAuthMode(null)}
+            >
+              Cancel
+            </button>
+          </form>
+        </section>
+      )}
 
       {/* HERO SECTION */}
       <section className="hero" id="home">
@@ -282,17 +762,20 @@ function App() {
       <section className="internships" id="internships">
         <h2>Latest Internship Opportunities</h2>
 
-        <button
-          type="button"
-          className="primary-btn"
-          onClick={handleNewInternship}
-          disabled={saving}
-        >
-          {showForm ? "Cancel" : "+ Post an Internship"}
-        </button>
+        {/* Only companies can post internships */}
+        {isCompany && (
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={handleNewInternship}
+            disabled={saving}
+          >
+            {showForm ? "Cancel" : "+ Post an Internship"}
+          </button>
+        )}
 
-        {/* ADD / EDIT FORM */}
-        {showForm && (
+        {/* ADD / EDIT FORM - COMPANY ONLY */}
+        {showForm && isCompany && (
           <form
             className="internship-form"
             onSubmit={handleSaveInternship}
@@ -317,10 +800,8 @@ function App() {
             <input
               id="company"
               name="company"
-              value={formData.company}
-              onChange={handleInputChange}
-              placeholder="e.g. ABC Engineering"
-              required
+              value={currentUser.name}
+              readOnly
             />
 
             <label htmlFor="location">Location</label>
@@ -397,7 +878,7 @@ function App() {
           </form>
         )}
 
-        {/* LOADING AND ERROR MESSAGES */}
+        {/* LOADING AND ERRORS */}
         {loading && <p>Loading internships...</p>}
 
         {error && (
@@ -427,48 +908,239 @@ function App() {
                 <h3>{internship.title}</h3>
 
                 <p>{internship.company}</p>
-
                 <p>Location: {internship.location}</p>
-
                 <p>Type: {internship.type}</p>
 
                 <button
                   type="button"
                   className="primary-btn"
-                  onClick={() =>
-                    setSelectedInternship(internship)
-                  }
+                  onClick={() => setSelectedInternship(internship)}
                 >
                   View Details
                 </button>
 
-                <div className="card-actions">
+                {/* Apply Now - Students only */}
+                {isStudent && (
                   <button
                     type="button"
-                    className="edit-btn"
-                    onClick={() =>
-                      handleEditInternship(internship)
+                    className="primary-btn"
+                    onClick={() => handleApplyClick(internship)}
+                    disabled={
+                      loadingApplications ||
+                      hasApplied(internship._id)
                     }
-                    disabled={saving || Boolean(deletingId)}
                   >
-                    Edit
+                    {hasApplied(internship._id)
+                      ? "Already Applied"
+                      : "Apply Now"}
                   </button>
+                )}
 
-                  <button
-                    type="button"
-                    className="delete-btn"
-                    onClick={() =>
-                      handleDeleteInternship(internship._id)
-                    }
-                    disabled={saving || Boolean(deletingId)}
-                  >
-                    {deletingId === internship._id
-                      ? "Deleting..."
-                      : "Delete"}
-                  </button>
-                </div>
+                {/* Edit and Delete - Company owner only */}
+                {canManageInternship(internship) && (
+                  <div className="card-actions">
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      onClick={() => handleViewApplicants(internship)}
+                    >
+                      View Applicants
+                    </button>
+
+                    <button
+                      type="button"
+                      className="edit-btn"
+                      onClick={() =>
+                        handleEditInternship(internship)
+                      }
+                      disabled={saving || Boolean(deletingId)}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      onClick={() =>
+                        handleDeleteInternship(internship._id)
+                      }
+                      disabled={saving || Boolean(deletingId)}
+                    >
+                      {deletingId === internship._id
+                        ? "Deleting..."
+                        : "Delete"}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* STUDENT APPLICATION FORM */}
+        {applyingInternship && isStudent && (
+          <div className="internship-details" id="application-form">
+            <h3>Apply for {applyingInternship.title}</h3>
+
+            <p>Company: {applyingInternship.company}</p>
+
+            <form onSubmit={handleSubmitApplication}>
+              <label htmlFor="cover-letter">
+                Cover Letter
+              </label>
+
+              <textarea
+                id="cover-letter"
+                value={coverLetter}
+                onChange={(event) =>
+                  setCoverLetter(event.target.value)
+                }
+                placeholder="Explain why you are interested in this internship..."
+                rows="6"
+                maxLength={2000}
+                required
+              />
+
+              {applicationError && (
+                <p className="form-error" role="alert">
+                  {applicationError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="primary-btn"
+                disabled={submittingApplication}
+              >
+                {submittingApplication
+                  ? "Submitting..."
+                  : "Submit Application"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setApplyingInternship(null);
+                  setApplicationError("");
+                }}
+              >
+                Cancel
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* MY APPLICATIONS - STUDENTS ONLY */}
+        {isStudent && (
+          <div
+            className="internship-details"
+            id="my-applications"
+          >
+            <h3>My Applications</h3>
+
+            {loadingApplications ? (
+              <p>Loading applications...</p>
+            ) : myApplications.length === 0 ? (
+              <p>
+                You have not applied for any internships yet.
+              </p>
+            ) : (
+              myApplications.map((application) => (
+                <div
+                  key={application._id}
+                  className="application-item"
+                >
+                  <h4>
+                    {application.internship?.title ||
+                      "Internship no longer available"}
+                  </h4>
+
+                  <p>
+                    Company:{" "}
+                    {application.internship?.company ||
+                      "Not available"}
+                  </p>
+
+                  <p>
+                    Status:{" "}
+                    <strong>{application.status}</strong>
+                  </p>
+                </div>
+              ))
+            )}
+
+            {applicationError && !applyingInternship && (
+              <p className="form-error" role="alert">
+                {applicationError}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* COMPANY APPLICATION REVIEW */}
+        {reviewingInternship && isCompany && (
+          <div className="internship-details" id="company-applicants">
+            <h3>Applicants for {reviewingInternship.title}</h3>
+
+            {loadingApplicants && <p>Loading applicants...</p>}
+
+            {applicantError && (
+              <p className="form-error" role="alert">
+                {applicantError}
+              </p>
+            )}
+
+            {!loadingApplicants &&
+              !applicantError &&
+              companyApplications.length === 0 && (
+                <p>No applications received yet.</p>
+              )}
+
+            {!loadingApplicants &&
+              companyApplications.map((application) => (
+                <div className="application-item" key={application._id}>
+                  <h4>{application.student?.name || "Student"}</h4>
+                  <p>Email: {application.student?.email || "Not available"}</p>
+                  <p>Cover Letter: {application.coverLetter}</p>
+                  <p>
+                    Status: <strong>{application.status}</strong>
+                  </p>
+
+                  <div className="card-actions">
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      disabled={Boolean(updatingApplicationId) || application.status === "Accepted"}
+                      onClick={() =>
+                        handleUpdateApplicationStatus(application._id, "Accepted")
+                      }
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      disabled={Boolean(updatingApplicationId) || application.status === "Rejected"}
+                      onClick={() =>
+                        handleUpdateApplicationStatus(application._id, "Rejected")
+                      }
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+            <button
+              type="button"
+              onClick={() => {
+                setReviewingInternship(null);
+                setCompanyApplications([]);
+                setApplicantError("");
+              }}
+            >
+              Close Applicants
+            </button>
           </div>
         )}
 
@@ -523,7 +1195,7 @@ function App() {
         )}
       </section>
 
-      {/* ABOUT SECTION */}
+      {/* ABOUT */}
       <section className="about" id="about">
         <h2>About CareerBridge</h2>
 
