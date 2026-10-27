@@ -1,5 +1,14 @@
+
+/* ========================================
+   CAREERBRIDGE - MAIN STYLES
+======================================== */
+
 * {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -9,41 +18,40 @@ body {
   color: #1e293b;
 }
 
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 6%;
-  background: #ffffff;
-  box-shadow: 0 2px 8px #00000012;
-}
-
-.navbar h2 {
-  color: #2563eb;
-}
-
-.nav-links {
-  display: flex;
-  gap: 25px;
-}
-
-.nav-links a {
-  text-decoration: none;
-  color: #334155;
-}
-
-.nav-buttons {
-  display: flex;
-  gap: 10px;
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 button {
   padding: 10px 18px;
   border: 1px solid #2563eb;
-  border-radius: 6px;
+  border-radius: 7px;
   background: white;
   color: #2563eb;
   cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+button:hover {
+  background: #eff6ff;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
 }
 
 .primary-btn {
@@ -51,96 +59,421 @@ button {
   color: white;
 }
 
+.primary-btn:hover {
+  background: #1d4ed8;
+}
+
+/* ========================================
+   NAVIGATION BAR
+======================================== */
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 6%;
+  background: #ffffff;
+  box-shadow: 0 2px 8px #00000012;
+}
+
+.navbar h2 {
+  color: #2563eb;
+  margin: 0;
+  font-size: 25px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #334155;
+  font-weight: 500;
+}
+
+.nav-links a:hover {
+  color: #2563eb;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+/* ========================================
+   HERO SECTION
+======================================== */
+
 .hero {
   padding: 85px 20px;
   text-align: center;
-  background: #dbeafe;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
 }
 
 .hero h1 {
   font-size: 42px;
-  margin-bottom: 15px;
+  margin: 0 0 15px;
+  color: #1e3a8a;
 }
 
 .hero p {
   max-width: 600px;
   margin: 0 auto 30px;
   line-height: 1.7;
+  color: #475569;
 }
 
 .search-box {
   display: flex;
   justify-content: center;
   gap: 10px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .search-box input {
-  width: 350px;
-  max-width: 70%;
-  padding: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 13px;
   border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  border-radius: 7px;
+  font-size: 15px;
 }
+
+.search-box button {
+  padding: 12px 24px;
+}
+
+/* ========================================
+   INTERNSHIP SECTION
+======================================== */
 
 .internships {
   padding: 60px 6%;
+  min-height: 350px;
 }
 
 .internships h2 {
   text-align: center;
-  margin-bottom: 30px;
+  margin: 0 0 30px;
+  font-size: 28px;
+  color: #1e293b;
+}
+
+/* Center the Post Internship button */
+.internships > .primary-btn {
+  display: block;
+  margin: 0 auto 30px;
 }
 
 .internship-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 25px;
 }
 
+/* Individual internship card */
 .internship-card {
-  background: white;
+  background: #ffffff;
   padding: 25px;
-  border-radius: 10px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
   box-shadow: 0 3px 12px #00000012;
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-width: 0;
+}
+
+.internship-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 22px #00000018;
 }
 
 .internship-card h3 {
   color: #1d4ed8;
+  font-size: 19px;
+  margin: 0 0 16px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .internship-card p {
   color: #64748b;
+  margin: 10px 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
+.internship-card > .primary-btn {
+  margin-top: 15px;
+}
+
+/* ========================================
+   EDIT AND DELETE BUTTONS
+======================================== */
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 7px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit-btn {
+  background: #2563eb;
+}
+
+.edit-btn:hover {
+  background: #1d4ed8;
+}
+
+.delete-btn {
+  background: #dc2626;
+}
+
+.delete-btn:hover {
+  background: #b91c1c;
+}
+
+/* ========================================
+   INTERNSHIP DETAILS
+======================================== */
+
+.internship-details {
+  max-width: 750px;
+  margin: 35px auto 0;
+  padding: 30px;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px #00000014;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.internship-details h3 {
+  color: #1d4ed8;
+  font-size: 23px;
+  margin: 0 0 20px;
+}
+
+.internship-details p {
+  margin-bottom: 14px;
+  line-height: 1.7;
+  color: #475569;
+}
+
+.internship-details strong {
+  color: #1e293b;
+}
+
+.internship-details button {
+  margin-top: 12px;
+}
+
+/* ========================================
+   ADD / EDIT INTERNSHIP FORM
+======================================== */
+
+.internship-form {
+  max-width: 650px;
+  margin: 30px auto;
+  padding: 30px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px #00000014;
+  text-align: left;
+}
+
+.internship-form h3 {
+  margin: 0 0 24px;
+  color: #1d4ed8;
+  font-size: 23px;
+}
+
+.internship-form label {
+  display: block;
+  margin: 16px 0 7px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #334155;
+}
+
+.internship-form input,
+.internship-form select,
+.internship-form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 15px;
+}
+
+.internship-form input:focus,
+.internship-form select:focus,
+.internship-form textarea:focus {
+  border-color: #2563eb;
+}
+
+.internship-form textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.internship-form button {
+  margin-top: 22px;
+  width: 100%;
+  padding: 13px;
+}
+
+.form-error {
+  color: #dc2626;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+/* ========================================
+   ABOUT SECTION
+======================================== */
+
 .about {
-  padding: 50px 6%;
+  padding: 55px 6%;
   text-align: center;
   background: #e2e8f0;
 }
 
+.about h2 {
+  color: #1e3a8a;
+  margin-bottom: 18px;
+}
+
+.about p {
+  max-width: 650px;
+  margin: 0 auto;
+  line-height: 1.8;
+  color: #475569;
+}
+
+/* ========================================
+   FOOTER
+======================================== */
+
 footer {
-  padding: 20px;
+  padding: 22px;
   text-align: center;
   background: #1e293b;
   color: white;
 }
 
+footer p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ========================================
+   TABLET RESPONSIVENESS
+======================================== */
+
+@media (max-width: 1024px) {
+  .internship-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .navbar {
+    flex-wrap: wrap;
+  }
+}
+
+/* ========================================
+   MOBILE RESPONSIVENESS
+======================================== */
+
 @media (max-width: 768px) {
   .navbar {
     flex-direction: column;
-    gap: 15px;
+    gap: 18px;
+    padding: 20px;
   }
 
   .nav-links {
     flex-wrap: wrap;
     justify-content: center;
+    gap: 18px;
+  }
+
+  .nav-buttons {
+    justify-content: center;
+  }
+
+  .hero {
+    padding: 60px 20px;
+  }
+
+  .hero h1 {
+    font-size: 30px;
+  }
+
+  .internships {
+    padding: 40px 20px;
+  }
+
+  .internships h2 {
+    font-size: 24px;
   }
 
   .internship-grid {
     grid-template-columns: 1fr;
   }
 
-  .hero h1 {
-    font-size: 30px;
+  .internship-form {
+    padding: 22px;
+  }
+
+  .internship-details {
+    padding: 22px;
+  }
+
+  .about {
+    padding: 40px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-box {
+    flex-direction: column;
+  }
+
+  .search-box input,
+  .search-box button {
+    width: 100%;
+  }
+
+  .card-actions {
+    flex-direction: column;
+  }
+
+  .card-actions button {
+    width: 100%;
+  }
+
+  .internship-card > .primary-btn {
+    width: 100%;
   }
 }
