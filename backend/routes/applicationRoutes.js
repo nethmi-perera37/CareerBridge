@@ -205,12 +205,23 @@ router.patch("/:id/status", protect, async (req, res) => {
       });
     }
 
-    application.status = status;
-    await application.save();
+    // Atomic conditional update: a decision can only be made while Pending.
+    // This also prevents two simultaneous requests from changing a final decision.
+    const updatedApplication = await Application.findOneAndUpdate(
+      { _id: application._id, status: "Pending" },
+      { $set: { status } },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedApplication) {
+      return res.status(409).json({
+        message: "This application has already been accepted or rejected. The decision is final.",
+      });
+    }
 
     res.json({
       message: "Application status updated successfully.",
-      application,
+      application: updatedApplication,
     });
   } catch (error) {
     res.status(500).json({
